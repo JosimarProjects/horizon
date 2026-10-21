@@ -22,6 +22,7 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityHomeBinding
     private var pendingUrl: String? = null
+    private var justHandledIntent = false
 
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -53,18 +54,31 @@ class HomeActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (pendingUrl == null) {
-            readClipboard()?.let { setPending(it) }
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // A área de transferência só pode ser lida quando a janela TEM foco
+        // (Android 10+). onResume é cedo demais e o acesso é negado.
+        if (!hasFocus) return
+        // Acabou de chegar por "Compartilhar" (SEND): esse link vence desta vez.
+        if (justHandledIntent) {
+            justHandledIntent = false
+            return
         }
+        // Caso contrário, sempre relê a área de transferência — assim um link
+        // recém-copiado é reconhecido mesmo com o app já aberto.
+        readClipboard()?.let { setPending(it) }
     }
 
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             val text = intent.getStringExtra(Intent.EXTRA_TEXT)
             val url = extractUrl(text)
-            if (url != null) setPending(url) else toast(getString(R.string.url_invalid))
+            if (url != null) {
+                setPending(url)
+                justHandledIntent = true
+            } else {
+                toast(getString(R.string.url_invalid))
+            }
         }
     }
 
