@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Horizon</string>
+    <string name="title">H O R I Z O N</string>
+    <string name="download">Download</string>
+    <string name="idle">Cole ou compartilhe um link de vídeo</string>
+    <string name="preparing">Preparando seu vídeo…</string>
+    <string name="complete">Download concluído</string>
+    <string name="url_invalid">Link inválido</string>
+    <string name="url_missing">Nenhum link encontrado</string>
+    <string name="videos">V Í D E O S</string>
+    <string name="settings">Configurações</string>
+    <string name="howto">Como usar</string>
+    <string name="quality">Qualidade</string>
+    <string name="empty_library">Nenhum vídeo baixado ainda</string>
+    <string name="howto_text">1. Abra o app (YouTube, Instagram, Facebook, TikTok, X…)\n2. Toque em Compartilhar e escolha o Horizon — ou copie o link e volte aqui\n3. Toque no botão de Download\n\nOs vídeos ficam na aba VÍDEOS e podem ser abertos no player interno.</string>
+</resources>
