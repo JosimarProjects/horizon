@@ -38,6 +38,7 @@ class LibraryActivity : AppCompatActivity() {
         b.list.layoutManager = GridLayoutManager(this, 2)
         b.list.adapter = adapter
 
+        b.btnBack.setOnClickListener { finish() }
         b.btnSort.setOnClickListener { sortMenu() }
         b.btnSelect.setOnClickListener { toggleSelectionMode() }
         b.btnDeleteSel.setOnClickListener { deleteSelected() }

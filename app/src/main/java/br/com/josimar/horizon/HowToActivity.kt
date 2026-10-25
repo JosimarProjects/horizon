@@ -9,5 +9,6 @@ class HowToActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val b = ActivityHowtoBinding.inflate(layoutInflater)
         setContentView(b.root)
+        b.btnBack.setOnClickListener { finish() }
     }
 }

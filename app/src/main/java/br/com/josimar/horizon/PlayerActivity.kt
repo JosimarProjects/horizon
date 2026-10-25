@@ -1,19 +1,29 @@
 package br.com.josimar.horizon
 
+import android.app.PictureInPictureParams
+import android.content.ComponentName
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import br.com.josimar.horizon.databinding.ActivityPlayerBinding
+import com.google.common.util.concurrent.ListenableFuture
 import java.io.File
 
 class PlayerActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityPlayerBinding
-    private var player: ExoPlayer? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var controller: MediaController? = null
     private var path: String? = null
     private var speed = 1f
 
@@ -22,8 +32,86 @@ class PlayerActivity : AppCompatActivity() {
         b = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(b.root)
         path = intent.getStringExtra(EXTRA_PATH)
+        b.btnBack.setOnClickListener { finish() }
         b.btnShare.setOnClickListener { share() }
         b.btnSpeed.setOnClickListener { speedMenu() }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val future = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = future
+        future.addListener({
+            val c = try { future.get() } catch (_: Exception) { return@addListener }
+            controller = c
+            b.player.player = c
+            try { attach(c) } catch (_: Exception) {}
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun attach(c: MediaController) {
+        val p = path ?: return
+        c.setPlaybackSpeed(speed)
+        if (c.currentMediaItem?.mediaId == p && c.mediaItemCount > 0) {
+            // já é o vídeo em reprodução (voltou pra ele) — só reanexa
+            return
+        }
+        Resume.markPlayed(this, p)
+        val item = MediaItem.Builder()
+            .setUri(Uri.fromFile(File(p)))
+            .setMediaId(p)
+            .build()
+        c.setMediaItem(item)
+        c.prepare()
+        val resumeAt = Resume.position(this, p)
+        if (resumeAt > 0) c.seekTo(resumeAt)
+        c.playWhenReady = true
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        enterPipIfPlaying()
+    }
+
+    private fun enterPipIfPlaying() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val c = controller ?: return
+        if (!c.isPlaying) return
+        val w = c.videoSize.width
+        val h = c.videoSize.height
+        val ratio = if (w > 0 && h > 0) Rational(w, h) else Rational(16, 9)
+        try {
+            enterPictureInPictureMode(
+                PictureInPictureParams.Builder().setAspectRatio(ratio).build()
+            )
+        } catch (_: Exception) {}
+    }
+
+    override fun onPictureInPictureModeChanged(isInPip: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPip, newConfig)
+        val vis = if (isInPip) View.GONE else View.VISIBLE
+        b.btnBack.visibility = vis
+        b.topControls.visibility = vis
+        b.player.useController = !isInPip
+    }
+
+    override fun onStop() {
+        super.onStop()
+        saveProgress()
+        // em PiP o player segue; só solta de fato quando não está em PiP
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) return
+        b.player.player = null
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        controller = null
+    }
+
+    private fun saveProgress() {
+        val p = path ?: return
+        controller?.let {
+            if (it.duration > 0) Resume.save(this, p, it.currentPosition, it.duration)
+        }
     }
 
     private fun speedMenu() {
@@ -32,40 +120,13 @@ class PlayerActivity : AppCompatActivity() {
             .setTitle(R.string.speed)
             .setItems(labels) { _, which ->
                 speed = SPEEDS[which]
-                player?.setPlaybackSpeed(speed)
+                controller?.setPlaybackSpeed(speed)
                 b.btnSpeed.text = "${trim(speed)}x"
             }
             .show()
     }
 
     private fun trim(v: Float) = if (v % 1f == 0f) v.toInt().toString() else v.toString()
-
-    override fun onStart() {
-        super.onStart()
-        val p = path ?: run { finish(); return }
-        Resume.markPlayed(this, p)
-        val player = ExoPlayer.Builder(this).build()
-        b.player.player = player
-        player.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(p))))
-        player.prepare()
-        player.setPlaybackSpeed(speed)
-        val resumeAt = Resume.position(this, p)
-        if (resumeAt > 0) player.seekTo(resumeAt)
-        player.playWhenReady = true
-        this.player = player
-    }
-
-    override fun onStop() {
-        super.onStop()
-        val p = path
-        player?.let {
-            if (p != null && it.duration > 0) {
-                Resume.save(this, p, it.currentPosition, it.duration)
-            }
-        }
-        player?.release()
-        player = null
-    }
 
     private fun share() {
         val p = path ?: return

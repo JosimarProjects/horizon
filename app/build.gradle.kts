@@ -71,6 +71,7 @@ dependencies {
     // player
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
+    implementation("androidx.media3:media3-session:1.4.1")
 
     // thumbnails (inclui decoder de frame de vídeo)
     implementation("io.coil-kt:coil:2.7.0")

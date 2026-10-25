@@ -6,17 +6,29 @@
     android:background="@color/bg"
     android:fitsSystemWindows="true">
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnBack"
+        style="@style/Widget.Material3.Button.IconButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="8dp"
+        app:icon="@drawable/ic_back"
+        app:iconTint="@color/text_primary"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <TextView
         android:id="@+id/header"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginStart="8dp"
         android:letterSpacing="0.15"
         android:text="@string/videos"
         android:textColor="@color/text_primary"
         android:textSize="18sp"
         app:layout_constraintBottom_toBottomOf="@id/btnSort"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBack"
         app:layout_constraintTop_toTopOf="@id/btnSort" />
 
     <com.google.android.material.button.MaterialButton

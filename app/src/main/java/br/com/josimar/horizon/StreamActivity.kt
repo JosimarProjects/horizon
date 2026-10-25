@@ -34,6 +34,7 @@ class StreamActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         b = ActivityStreamBinding.inflate(layoutInflater)
         setContentView(b.root)
+        b.btnBack.setOnClickListener { finish() }
         b.btnManage.setOnClickListener { startActivity(Intent(this, LibraryActivity::class.java)) }
         b.btnCatSel.setOnClickListener { categoryPicker(selected.toList()) }
         b.btnMoveSel.setOnClickListener { folderPicker(selected.toList()) }

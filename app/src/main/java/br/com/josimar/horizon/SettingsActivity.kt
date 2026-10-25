@@ -12,6 +12,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         b = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(b.root)
+        b.btnBack.setOnClickListener { finish() }
 
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
         when (prefs.getString("quality", "best")) {
