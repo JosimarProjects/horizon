@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 class DownloadService : Service() {
 
-    private data class Item(val url: String, val quality: String)
+    private data class Item(val url: String, val quality: String, val folder: String)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -32,6 +32,7 @@ class DownloadService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val quality = intent?.getStringExtra(EXTRA_QUALITY) ?: "best"
+        val folder = intent?.getStringExtra(EXTRA_FOLDER) ?: ""
         val urls = intent?.getStringArrayListExtra(EXTRA_URLS)
             ?: intent?.getStringExtra(EXTRA_URL)?.let { arrayListOf(it) }
             ?: arrayListOf()
@@ -41,7 +42,7 @@ class DownloadService : Service() {
             return START_NOT_STICKY
         }
 
-        clean.forEach { queue.add(Item(it, quality)); totalEnqueued.incrementAndGet() }
+        clean.forEach { queue.add(Item(it, quality, folder)); totalEnqueued.incrementAndGet() }
 
         ServiceCompat.startForeground(
             this,
@@ -87,7 +88,7 @@ class DownloadService : Service() {
         val prefix = if (total > 1) "($idx/$total) " else ""
         Downloads.progress.value = DownloadProgress(url = url, index = idx, total = total, line = "Preparando…")
         try {
-            val dir = Downloads.outputDir(this)
+            val dir = Downloads.folderDir(this, item.folder)
             val before = dir.walkTopDown().filter { it.isFile }.map { it.absolutePath }.toSet()
             val playlist = isPlaylist(url)
 
@@ -176,6 +177,7 @@ class DownloadService : Service() {
         const val EXTRA_URL = "url"
         const val EXTRA_URLS = "urls"
         const val EXTRA_QUALITY = "quality"
+        const val EXTRA_FOLDER = "folder"
         private const val NOTIF_ID = 42
 
         private val queue = ConcurrentLinkedQueue<Item>()
@@ -183,13 +185,14 @@ class DownloadService : Service() {
         private val totalEnqueued = AtomicInteger(0)
         private val completed = AtomicInteger(0)
 
-        fun start(ctx: Context, url: String, quality: String) =
-            start(ctx, arrayListOf(url), quality)
+        fun start(ctx: Context, url: String, quality: String, folder: String = "") =
+            start(ctx, arrayListOf(url), quality, folder)
 
-        fun start(ctx: Context, urls: ArrayList<String>, quality: String) {
+        fun start(ctx: Context, urls: ArrayList<String>, quality: String, folder: String = "") {
             val i = Intent(ctx, DownloadService::class.java)
                 .putStringArrayListExtra(EXTRA_URLS, urls)
                 .putExtra(EXTRA_QUALITY, quality)
+                .putExtra(EXTRA_FOLDER, folder)
             androidx.core.content.ContextCompat.startForegroundService(ctx, i)
         }
     }

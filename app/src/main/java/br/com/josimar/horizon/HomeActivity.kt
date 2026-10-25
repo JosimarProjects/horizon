@@ -8,8 +8,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -36,6 +38,8 @@ class HomeActivity : AppCompatActivity() {
         b.btnSettings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         b.btnVideos.setOnClickListener { startActivity(Intent(this, LibraryActivity::class.java)) }
         b.btnDownload.setOnClickListener { startDownload() }
+        b.btnFolder.setOnClickListener { pickFolder() }
+        updateFolderButton()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -102,11 +106,61 @@ class HomeActivity : AppCompatActivity() {
             toast(getString(R.string.url_missing))
             return
         }
-        val quality = getSharedPreferences("settings", MODE_PRIVATE)
-            .getString("quality", "best") ?: "best"
-        DownloadService.start(this, ArrayList(urls), quality)
+        val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+        val quality = prefs.getString("quality", "best") ?: "best"
+        val folder = prefs.getString("folder", "") ?: ""
+        DownloadService.start(this, ArrayList(urls), quality, folder)
         b.status.text = getString(R.string.preparing)
         b.progress.visibility = View.VISIBLE
+    }
+
+    private fun currentFolder() =
+        getSharedPreferences("settings", MODE_PRIVATE).getString("folder", "") ?: ""
+
+    private fun updateFolderButton() {
+        val f = currentFolder()
+        b.btnFolder.text = if (f.isBlank()) getString(R.string.folder_main) else f
+    }
+
+    private fun setFolder(name: String) {
+        getSharedPreferences("settings", MODE_PRIVATE).edit().putString("folder", name).apply()
+        updateFolderButton()
+    }
+
+    /** Escolher a pasta de destino dos downloads (ou criar uma nova). */
+    private fun pickFolder() {
+        val folders = Downloads.folders(this)
+        val options = buildList {
+            add(Downloads.ROOT_LABEL)   // "" (raiz)
+            addAll(folders)
+            add("➕ " + getString(R.string.new_folder))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.save_to)
+            .setItems(options.toTypedArray()) { _, which ->
+                when {
+                    which == 0 -> setFolder("")
+                    which == options.lastIndex -> promptNewFolder()
+                    else -> setFolder(options[which])
+                }
+            }
+            .show()
+    }
+
+    private fun promptNewFolder() {
+        val input = EditText(this).apply { hint = getString(R.string.folder_name) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.new_folder)
+            .setView(input)
+            .setPositiveButton(R.string.create) { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isNotBlank()) {
+                    Downloads.createFolder(this, name)
+                    setFolder(name)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun observeProgress() {

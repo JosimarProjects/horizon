@@ -18,5 +18,20 @@
     <string name="batch_all_done">Tudo concluído (%1$d)</string>
     <string name="share">Compartilhar</string>
     <string name="delete">Excluir</string>
+    <string name="folder_main">Principal</string>
+    <string name="save_to">Salvar em</string>
+    <string name="move_to">Mover para</string>
+    <string name="new_folder">Nova pasta</string>
+    <string name="folder_name">Nome da pasta</string>
+    <string name="create">Criar</string>
+    <string name="move">Mover</string>
+    <string name="rename">Renomear</string>
+    <string name="rename_fail">Não foi possível renomear</string>
+    <string name="all">Todos</string>
+    <string name="sort_by">Ordenar por</string>
+    <string name="n_selected">%1$d selecionados</string>
+    <string name="delete_n">Excluir %1$d vídeos?</string>
+    <string name="moved_n">%1$d movido(s)</string>
+    <string name="nothing_selected">Nada selecionado</string>
     <string name="howto_text">1. Abra o app (YouTube, Instagram, Facebook, TikTok, X…)\n2. Toque em Compartilhar e escolha o Horizon — ou copie o link e volte aqui\n3. Toque no botão de Download\n\nVários de uma vez: copie ou compartilhe um texto com vários links (um por linha) e todos entram na fila.\n\nPlaylist: cole o link da playlist e todos os vídeos são salvos juntos numa pasta.\n\nOs vídeos ficam na aba VÍDEOS, com botão de Compartilhar (WhatsApp etc.) e player interno.</string>
 </resources>
