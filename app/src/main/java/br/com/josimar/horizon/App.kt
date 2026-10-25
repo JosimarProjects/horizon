@@ -23,6 +23,29 @@ class App : Application() {
             )
             getSystemService(NotificationManager::class.java).createNotificationChannel(ch)
         }
+        setupCastEndListener()
+    }
+
+    /** Desliga o servidor de Cast quando a transmissão termina (mesmo fora do player). */
+    private fun setupCastEndListener() {
+        try {
+            val ctx = this
+            com.google.android.gms.cast.framework.CastContext.getSharedInstance(this)
+                .sessionManager.addSessionManagerListener(
+                    object : com.google.android.gms.cast.framework.SessionManagerListener<com.google.android.gms.cast.framework.CastSession> {
+                        override fun onSessionEnded(s: com.google.android.gms.cast.framework.CastSession, e: Int) = CastServerService.stop(ctx)
+                        override fun onSessionStarting(s: com.google.android.gms.cast.framework.CastSession) {}
+                        override fun onSessionStarted(s: com.google.android.gms.cast.framework.CastSession, id: String) {}
+                        override fun onSessionStartFailed(s: com.google.android.gms.cast.framework.CastSession, e: Int) {}
+                        override fun onSessionEnding(s: com.google.android.gms.cast.framework.CastSession) {}
+                        override fun onSessionResuming(s: com.google.android.gms.cast.framework.CastSession, id: String) {}
+                        override fun onSessionResumed(s: com.google.android.gms.cast.framework.CastSession, w: Boolean) {}
+                        override fun onSessionResumeFailed(s: com.google.android.gms.cast.framework.CastSession, e: Int) {}
+                        override fun onSessionSuspended(s: com.google.android.gms.cast.framework.CastSession, r: Int) {}
+                    },
+                    com.google.android.gms.cast.framework.CastSession::class.java
+                )
+        } catch (_: Exception) { /* Cast indisponível */ }
     }
 
     companion object {

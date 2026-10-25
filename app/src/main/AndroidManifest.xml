@@ -52,6 +52,11 @@
             android:foregroundServiceType="dataSync" />
 
         <service
+            android:name=".CastServerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <service
             android:name=".PlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback">

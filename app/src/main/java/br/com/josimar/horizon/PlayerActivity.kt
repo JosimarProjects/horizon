@@ -24,7 +24,6 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.common.util.concurrent.ListenableFuture
-import fi.iki.elonen.NanoHTTPD
 import java.io.File
 
 class PlayerActivity : AppCompatActivity() {
@@ -39,11 +38,11 @@ class PlayerActivity : AppCompatActivity() {
 
     private var castContext: CastContext? = null
     private var castSession: CastSession? = null
-    private var server: LocalMediaServer? = null
+    private var casting = false
     private val castListener = object : SessionManagerListener<CastSession> {
-        override fun onSessionStarted(s: CastSession, id: String) { castSession = s; castLoad() }
-        override fun onSessionResumed(s: CastSession, wasSuspended: Boolean) { castSession = s; castLoad() }
-        override fun onSessionEnded(s: CastSession, error: Int) { castSession = null; stopServer() }
+        override fun onSessionStarted(s: CastSession, id: String) { castSession = s; casting = true; castLoad() }
+        override fun onSessionResumed(s: CastSession, wasSuspended: Boolean) { castSession = s; casting = true; castLoad() }
+        override fun onSessionEnded(s: CastSession, error: Int) { castSession = null; casting = false; CastServerService.stop(this@PlayerActivity) }
         override fun onSessionStarting(s: CastSession) {}
         override fun onSessionStartFailed(s: CastSession, error: Int) {}
         override fun onSessionEnding(s: CastSession) {}
@@ -76,7 +75,9 @@ class PlayerActivity : AppCompatActivity() {
         super.onResume()
         castContext?.sessionManager?.let { sm ->
             sm.addSessionManagerListener(castListener, CastSession::class.java)
-            sm.currentCastSession?.let { if (it.isConnected) { castSession = it; castLoad() } }
+            sm.currentCastSession?.let {
+                if (it.isConnected) { castSession = it; casting = true; castLoad() }
+            }
         }
     }
 
@@ -85,34 +86,31 @@ class PlayerActivity : AppCompatActivity() {
         castContext?.sessionManager?.removeSessionManagerListener(castListener, CastSession::class.java)
     }
 
-    /** Carrega o arquivo atual na TV via servidor local. */
+    /** Carrega o arquivo atual na TV; o servidor roda num serviço (sobrevive ao fechar). */
     private fun castLoad() {
         val p = currentPath() ?: return
         val ip = lanIp() ?: return
         val f = File(p)
-        stopServer()
-        val srv = LocalMediaServer(f)
-        try { srv.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) } catch (_: Exception) { return }
-        server = srv
+        CastServerService.start(this, p)
+        val mime = when (f.extension.lowercase()) {
+            "webm" -> "video/webm"; "mkv" -> "video/x-matroska"
+            "mp3" -> "audio/mpeg"; "m4a" -> "audio/mp4"; else -> "video/mp4"
+        }
         val url = "http://$ip:8099/" + Uri.encode(f.name)
         val meta = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
             putString(MediaMetadata.KEY_TITLE, f.nameWithoutExtension)
         }
         val info = MediaInfo.Builder(url)
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
-            .setContentType(srv.mime)
+            .setContentType(mime)
             .setMetadata(meta)
             .build()
         val pos = controller?.currentPosition ?: 0L
         val req = MediaLoadRequestData.Builder()
             .setMediaInfo(info).setAutoplay(true).setCurrentTime(pos).build()
         castSession?.remoteMediaClient?.load(req)
-        controller?.pause()
-    }
-
-    private fun stopServer() {
-        try { server?.stop() } catch (_: Exception) {}
-        server = null
+        // vídeo e áudio só na TV: para o player local totalmente
+        controller?.stop()
     }
 
     private fun lanIp(): String? {
@@ -147,6 +145,8 @@ class PlayerActivity : AppCompatActivity() {
                 }
             })
             try { attach(c) } catch (_: Exception) {}
+            // se já está transmitindo, o local não toca (só a TV)
+            if (casting) { c.stop(); castLoad() }
         }, ContextCompat.getMainExecutor(this))
     }
 
@@ -163,7 +163,7 @@ class PlayerActivity : AppCompatActivity() {
             Resume.markPlayed(this, pl[idx])
             c.setMediaItems(items, idx, Resume.position(this, pl[idx]))
             c.prepare()
-            c.playWhenReady = true
+            c.playWhenReady = !casting
             return
         }
         val p = path ?: return
@@ -177,7 +177,7 @@ class PlayerActivity : AppCompatActivity() {
         c.prepare()
         val resumeAt = Resume.position(this, p)
         if (resumeAt > 0) c.seekTo(resumeAt)
-        c.playWhenReady = true
+        c.playWhenReady = !casting
     }
 
     override fun onUserLeaveHint() {
@@ -212,15 +212,15 @@ class PlayerActivity : AppCompatActivity() {
         saveProgress()
         // em PiP o player segue; só solta de fato quando não está em PiP
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) return
+        if (isFinishing) {
+            // saiu com "Voltar": para de tocar (o background é só ao minimizar/bloquear)
+            controller?.stop()
+            stopService(Intent(this, PlaybackService::class.java))
+        }
         b.player.player = null
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         controller = null
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopServer()
     }
 
     private fun saveProgress() {
