@@ -16,7 +16,15 @@ import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import br.com.josimar.horizon.databinding.ActivityPlayerBinding
+import com.google.android.gms.cast.MediaInfo
+import com.google.android.gms.cast.MediaLoadRequestData
+import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.framework.CastButtonFactory
+import com.google.android.gms.cast.framework.CastContext
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.common.util.concurrent.ListenableFuture
+import fi.iki.elonen.NanoHTTPD
 import java.io.File
 
 class PlayerActivity : AppCompatActivity() {
@@ -29,6 +37,21 @@ class PlayerActivity : AppCompatActivity() {
     private var startIndex = 0
     private var speed = 1f
 
+    private var castContext: CastContext? = null
+    private var castSession: CastSession? = null
+    private var server: LocalMediaServer? = null
+    private val castListener = object : SessionManagerListener<CastSession> {
+        override fun onSessionStarted(s: CastSession, id: String) { castSession = s; castLoad() }
+        override fun onSessionResumed(s: CastSession, wasSuspended: Boolean) { castSession = s; castLoad() }
+        override fun onSessionEnded(s: CastSession, error: Int) { castSession = null; stopServer() }
+        override fun onSessionStarting(s: CastSession) {}
+        override fun onSessionStartFailed(s: CastSession, error: Int) {}
+        override fun onSessionEnding(s: CastSession) {}
+        override fun onSessionResuming(s: CastSession, id: String) {}
+        override fun onSessionResumeFailed(s: CastSession, error: Int) {}
+        override fun onSessionSuspended(s: CastSession, reason: Int) {}
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         b = ActivityPlayerBinding.inflate(layoutInflater)
@@ -39,6 +62,71 @@ class PlayerActivity : AppCompatActivity() {
         b.btnBack.setOnClickListener { finish() }
         b.btnShare.setOnClickListener { share() }
         b.btnSpeed.setOnClickListener { speedMenu() }
+        // Enviar para TV (Cast) — só aparece se o Cast estiver disponível
+        try {
+            castContext = CastContext.getSharedInstance(this)
+            CastButtonFactory.setUpMediaRouteButton(applicationContext, b.btnCast)
+            b.btnCast.visibility = View.VISIBLE
+        } catch (_: Exception) {
+            b.btnCast.visibility = View.GONE
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        castContext?.sessionManager?.let { sm ->
+            sm.addSessionManagerListener(castListener, CastSession::class.java)
+            sm.currentCastSession?.let { if (it.isConnected) { castSession = it; castLoad() } }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        castContext?.sessionManager?.removeSessionManagerListener(castListener, CastSession::class.java)
+    }
+
+    /** Carrega o arquivo atual na TV via servidor local. */
+    private fun castLoad() {
+        val p = currentPath() ?: return
+        val ip = lanIp() ?: return
+        val f = File(p)
+        stopServer()
+        val srv = LocalMediaServer(f)
+        try { srv.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) } catch (_: Exception) { return }
+        server = srv
+        val url = "http://$ip:8099/" + Uri.encode(f.name)
+        val meta = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
+            putString(MediaMetadata.KEY_TITLE, f.nameWithoutExtension)
+        }
+        val info = MediaInfo.Builder(url)
+            .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+            .setContentType(srv.mime)
+            .setMetadata(meta)
+            .build()
+        val pos = controller?.currentPosition ?: 0L
+        val req = MediaLoadRequestData.Builder()
+            .setMediaInfo(info).setAutoplay(true).setCurrentTime(pos).build()
+        castSession?.remoteMediaClient?.load(req)
+        controller?.pause()
+    }
+
+    private fun stopServer() {
+        try { server?.stop() } catch (_: Exception) {}
+        server = null
+    }
+
+    private fun lanIp(): String? {
+        try {
+            for (intf in java.net.NetworkInterface.getNetworkInterfaces()) {
+                for (addr in intf.inetAddresses) {
+                    if (!addr.isLoopbackAddress && addr is java.net.Inet4Address) {
+                        val ip = addr.hostAddress ?: continue
+                        if (!ip.startsWith("127.")) return ip
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+        return null
     }
 
     /** Caminho do item em reprodução (vale para playlist). */
@@ -128,6 +216,11 @@ class PlayerActivity : AppCompatActivity() {
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         controller = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopServer()
     }
 
     private fun saveProgress() {
