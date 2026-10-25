@@ -18,7 +18,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import br.com.josimar.horizon.databinding.ActivityHomeBinding
+import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.mapper.VideoInfo
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeActivity : AppCompatActivity() {
 
@@ -115,14 +119,55 @@ class HomeActivity : AppCompatActivity() {
             toast(getString(R.string.already_queued))
             return
         }
-        val prefs = getSharedPreferences("settings", MODE_PRIVATE)
-        val quality = prefs.getString("quality", "best") ?: "best"
-        val folder = prefs.getString("folder", "") ?: ""
-        DownloadService.start(this, ArrayList(novos), quality, folder)
-        enqueued.addAll(novos)
-        pendingUrls = emptyList()   // pronto para colar o próximo
+        // analisa o tamanho e deixa escolher a compressão
+        b.status.text = getString(R.string.analyzing)
+        lifecycleScope.launch {
+            val info = withContext(Dispatchers.IO) {
+                try {
+                    App.ensureEngine(application)
+                    YoutubeDL.getInstance().getInfo(novos.first())
+                } catch (_: Exception) { null }
+            }
+            compressDialog(novos, info)
+        }
+    }
+
+    private fun compressDialog(urls: List<String>, info: VideoInfo?) {
+        val d = info?.duration ?: 0
+        fun est(bps: Long): String = if (d > 0) "~" + human(bps * d / 8) else "?"
+        val orig = when {
+            (info?.fileSizeApproximate ?: 0) > 0 -> human(info!!.fileSizeApproximate)
+            (info?.fileSize ?: 0) > 0 -> human(info!!.fileSize)
+            d > 0 -> est(2_800_000)
+            else -> "?"
+        }
+        val options = arrayOf(
+            "Original ($orig)",
+            "720p (${est(1_600_000)})",
+            "480p (${est(900_000)})",
+            "Comprimir forte — 480p (${est(550_000)})",
+            "Só áudio MP3 (${est(128_000)})"
+        )
+        val modes = arrayOf("best", "720", "480", "compress", "audio")
+        AlertDialog.Builder(this)
+            .setTitle(R.string.choose_quality)
+            .setItems(options) { _, which -> enqueue(urls, modes[which]) }
+            .setOnCancelListener { b.status.text = getString(R.string.idle) }
+            .show()
+    }
+
+    private fun enqueue(urls: List<String>, mode: String) {
+        val folder = getSharedPreferences("settings", MODE_PRIVATE).getString("folder", "") ?: ""
+        DownloadService.start(this, ArrayList(urls), mode, folder)
+        enqueued.addAll(urls)
+        pendingUrls = emptyList()
         b.progress.visibility = View.VISIBLE
-        toast(resources.getQuantityString(R.plurals.added_to_queue, novos.size, novos.size))
+        toast(resources.getQuantityString(R.plurals.added_to_queue, urls.size, urls.size))
+    }
+
+    private fun human(bytes: Long): String {
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb >= 1024) String.format("%.1f GB", mb / 1024) else String.format("%.0f MB", mb)
     }
 
     private fun currentFolder() =

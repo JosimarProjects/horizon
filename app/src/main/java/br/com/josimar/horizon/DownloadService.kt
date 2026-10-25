@@ -105,6 +105,10 @@ class DownloadService : Service() {
                 }
                 when (item.quality) {
                     "audio" -> { addOption("-x"); addOption("--audio-format", "mp3") }
+                    "480" -> {
+                        addOption("-f", "bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4]/b")
+                        addOption("--merge-output-format", "mp4")
+                    }
                     "720" -> {
                         addOption("-f", "bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]/b")
                         addOption("--merge-output-format", "mp4")
@@ -112,6 +116,13 @@ class DownloadService : Service() {
                     "1080" -> {
                         addOption("-f", "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/b")
                         addOption("--merge-output-format", "mp4")
+                    }
+                    "compress" -> {
+                        // baixa até 720 e RE-ENCODA para 480/CRF30 (ocupa bem menos espaço)
+                        addOption("-f", "bv*[height<=720]+ba/b[height<=720]/b")
+                        addOption("--recode-video", "mp4")
+                        addOption("--postprocessor-args",
+                            "VideoConvertor:-vf scale=-2:480 -crf 30 -preset veryfast -b:a 96k")
                     }
                     else -> {
                         addOption("-f", "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b")

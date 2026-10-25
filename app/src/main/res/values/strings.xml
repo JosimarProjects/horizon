@@ -33,6 +33,8 @@
     <string name="list_name">Nome da lista</string>
     <string name="add_to_list">Adicionar à lista</string>
     <string name="added_to_list">Adicionado à lista</string>
+    <string name="analyzing">Analisando tamanho…</string>
+    <string name="choose_quality">Qualidade / compressão</string>
     <string name="all">Todos</string>
     <string name="sort_by">Ordenar por</string>
     <string name="n_selected">%1$d selecionados</string>
