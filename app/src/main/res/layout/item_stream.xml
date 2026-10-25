@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="176dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="10dp"
+    android:orientation="vertical">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="99dp"
+        app:cardBackgroundColor="#000000"
+        app:cardCornerRadius="10dp">
+
+        <ImageView
+            android:id="@+id/thumb"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/scrim_bottom" />
+
+        <ImageView
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_gravity="center"
+            android:alpha="0.9"
+            android:src="@android:drawable/ic_media_play"
+            app:tint="#FFFFFF" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/resume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:visibility="gone"
+            app:indicatorColor="@color/accent"
+            app:trackColor="#55FFFFFF"
+            app:trackThickness="3dp" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:paddingTop="6dp"
+        android:textColor="@color/text_primary"
+        android:textSize="12sp" />
+</LinearLayout>

@@ -36,7 +36,7 @@ class HomeActivity : AppCompatActivity() {
 
         b.btnHowTo.setOnClickListener { startActivity(Intent(this, HowToActivity::class.java)) }
         b.btnSettings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
-        b.btnVideos.setOnClickListener { startActivity(Intent(this, LibraryActivity::class.java)) }
+        b.btnVideos.setOnClickListener { startActivity(Intent(this, StreamActivity::class.java)) }
         b.btnDownload.setOnClickListener { startDownload() }
         b.btnFolder.setOnClickListener { pickFolder() }
         updateFolderButton()

@@ -43,17 +43,26 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         val p = path ?: run { finish(); return }
+        Resume.markPlayed(this, p)
         val player = ExoPlayer.Builder(this).build()
         b.player.player = player
         player.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(p))))
         player.prepare()
         player.setPlaybackSpeed(speed)
+        val resumeAt = Resume.position(this, p)
+        if (resumeAt > 0) player.seekTo(resumeAt)
         player.playWhenReady = true
         this.player = player
     }
 
     override fun onStop() {
         super.onStop()
+        val p = path
+        player?.let {
+            if (p != null && it.duration > 0) {
+                Resume.save(this, p, it.currentPosition, it.duration)
+            }
+        }
         player?.release()
         player = null
     }
