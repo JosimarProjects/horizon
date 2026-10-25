@@ -188,6 +188,7 @@ class LibraryActivity : AppCompatActivity() {
     private fun itemMenu(file: File) {
         val actions = arrayOf(
             getString(R.string.rename),
+            getString(R.string.category),
             getString(R.string.move),
             getString(R.string.share),
             getString(R.string.delete)
@@ -197,9 +198,35 @@ class LibraryActivity : AppCompatActivity() {
             .setItems(actions) { _, which ->
                 when (which) {
                     0 -> renameDialog(file)
-                    1 -> moveDialog(listOf(file))
-                    2 -> share(file)
-                    3 -> confirmDelete(listOf(file))
+                    1 -> categoryDialog(file)
+                    2 -> moveDialog(listOf(file))
+                    3 -> share(file)
+                    4 -> confirmDelete(listOf(file))
+                }
+            }
+            .show()
+    }
+
+    private fun categoryDialog(file: File) {
+        val cats = Catalog.categories(this)
+        val options = buildList {
+            add(getString(R.string.no_category)); addAll(cats); add("➕ " + getString(R.string.new_category))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.category)
+            .setItems(options.toTypedArray()) { _, which ->
+                when {
+                    which == 0 -> { Catalog.setCategory(this, file.absolutePath, null); toast(getString(R.string.category_set)) }
+                    which == options.lastIndex -> {
+                        val input = EditText(this).apply { hint = getString(R.string.category_name) }
+                        AlertDialog.Builder(this).setTitle(R.string.new_category).setView(input)
+                            .setPositiveButton(R.string.create) { _, _ ->
+                                val n = input.text.toString().trim()
+                                if (n.isNotBlank()) { Catalog.setCategory(this, file.absolutePath, n); toast(getString(R.string.category_set)) }
+                            }
+                            .setNegativeButton(android.R.string.cancel, null).show()
+                    }
+                    else -> { Catalog.setCategory(this, file.absolutePath, options[which]); toast(getString(R.string.category_set)) }
                 }
             }
             .show()

@@ -44,5 +44,19 @@
     <string name="row_history">Histórico</string>
     <string name="row_recent">Recentes</string>
     <string name="manage">Gerenciar</string>
+    <string name="streaming">Streaming</string>
+    <string name="category">Categoria</string>
+    <string name="new_category">Nova categoria</string>
+    <string name="category_name">Nome da categoria</string>
+    <string name="no_category">Sem categoria</string>
+    <string name="set_cover">Definir capa</string>
+    <string name="cover_set">Capa definida</string>
+    <string name="category_set">Categoria aplicada</string>
+    <string name="remove_category">Remover categoria</string>
+    <string name="already_queued">Esse link já está na fila</string>
+    <plurals name="added_to_queue">
+        <item quantity="one">Adicionado à fila</item>
+        <item quantity="other">%d adicionados à fila</item>
+    </plurals>
     <string name="howto_text">1. Abra o app (YouTube, Instagram, Facebook, TikTok, X…)\n2. Toque em Compartilhar e escolha o Horizon — ou copie o link e volte aqui\n3. Toque no botão de Download\n\nVários de uma vez: copie ou compartilhe um texto com vários links (um por linha) e todos entram na fila.\n\nPlaylist: cole o link da playlist e todos os vídeos são salvos juntos numa pasta.\n\nOs vídeos ficam na aba VÍDEOS, com botão de Compartilhar (WhatsApp etc.) e player interno.</string>
 </resources>

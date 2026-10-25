@@ -11,7 +11,10 @@ import java.io.File
 
 class StreamRowAdapter(
     private val items: List<File>,
-    private val onClick: (File) -> Unit
+    private val onClick: (File) -> Unit,
+    private val onLongClick: (File) -> Unit = {},
+    private val selecting: () -> Boolean = { false },
+    private val isSelected: (File) -> Boolean = { false }
 ) : RecyclerView.Adapter<StreamRowAdapter.VH>() {
 
     inner class VH(val b: ItemStreamBinding) : RecyclerView.ViewHolder(b.root)
@@ -36,7 +39,10 @@ class StreamRowAdapter(
         } else {
             holder.b.resume.visibility = View.GONE
         }
+        holder.b.check.visibility =
+            if (selecting() && isSelected(file)) View.VISIBLE else View.GONE
         holder.b.root.setOnClickListener { onClick(file) }
+        holder.b.root.setOnLongClickListener { onLongClick(file); true }
     }
 
     override fun getItemCount() = items.size

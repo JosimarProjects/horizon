@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg"
+    android:background="@drawable/home_bg"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.button.MaterialButton
@@ -32,11 +32,12 @@
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:letterSpacing="0.2"
+        android:layout_marginTop="44dp"
+        android:letterSpacing="0.35"
         android:text="@string/title"
         android:textColor="@color/text_primary"
         android:textSize="22sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -57,17 +58,21 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDownload"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
+        android:layout_width="238dp"
+        android:layout_height="238dp"
         android:background="@drawable/ring_button"
         android:insetTop="0dp"
         android:insetBottom="0dp"
+        android:letterSpacing="0.05"
         android:text="@string/download"
         android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:elevation="12dp"
         app:backgroundTint="@null"
-        app:cornerRadius="110dp"
+        app:cornerRadius="119dp"
         app:icon="@android:drawable/stat_sys_download"
         app:iconGravity="top"
+        app:iconSize="30dp"
         app:iconTint="@color/accent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -100,19 +105,40 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/status" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnVideos"
-        style="@style/Widget.Material3.Button.TextButton"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:letterSpacing="0.15"
-        android:text="@string/videos"
-        android:textColor="@color/accent"
-        app:icon="@android:drawable/ic_menu_gallery"
-        app:iconTint="@color/accent"
+        android:layout_marginBottom="26dp"
+        android:background="@drawable/nav_pill"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStream"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.1"
+            android:text="@string/streaming"
+            android:textColor="@color/accent"
+            app:icon="@android:drawable/ic_media_play"
+            app:iconTint="@color/accent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideos"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.1"
+            android:text="@string/videos"
+            android:textColor="@color/text_secondary"
+            app:icon="@android:drawable/ic_menu_manage"
+            app:iconTint="@color/text_secondary" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

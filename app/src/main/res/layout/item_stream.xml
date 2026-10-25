@@ -41,6 +41,18 @@
             app:indicatorColor="@color/accent"
             app:trackColor="#55FFFFFF"
             app:trackThickness="3dp" />
+
+        <ImageView
+            android:id="@+id/check"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:background="@drawable/check_bg"
+            android:padding="3dp"
+            android:src="@android:drawable/checkbox_on_background"
+            android:visibility="gone"
+            app:tint="#FFFFFF" />
     </com.google.android.material.card.MaterialCardView>
 
     <TextView

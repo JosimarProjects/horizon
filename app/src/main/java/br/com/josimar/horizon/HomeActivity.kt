@@ -25,6 +25,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var b: ActivityHomeBinding
     private var pendingUrls: List<String> = emptyList()
     private var justHandledIntent = false
+    private val enqueued = HashSet<String>()   // links já colocados na fila nesta sessão
 
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -36,7 +37,8 @@ class HomeActivity : AppCompatActivity() {
 
         b.btnHowTo.setOnClickListener { startActivity(Intent(this, HowToActivity::class.java)) }
         b.btnSettings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
-        b.btnVideos.setOnClickListener { startActivity(Intent(this, StreamActivity::class.java)) }
+        b.btnStream.setOnClickListener { startActivity(Intent(this, StreamActivity::class.java)) }
+        b.btnVideos.setOnClickListener { startActivity(Intent(this, LibraryActivity::class.java)) }
         b.btnDownload.setOnClickListener { startDownload() }
         b.btnFolder.setOnClickListener { pickFolder() }
         updateFolderButton()
@@ -106,12 +108,20 @@ class HomeActivity : AppCompatActivity() {
             toast(getString(R.string.url_missing))
             return
         }
+        // não re-enfileira o mesmo link (evita duplicar ao tocar de novo)
+        val novos = urls.filter { it !in enqueued }
+        if (novos.isEmpty()) {
+            toast(getString(R.string.already_queued))
+            return
+        }
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val quality = prefs.getString("quality", "best") ?: "best"
         val folder = prefs.getString("folder", "") ?: ""
-        DownloadService.start(this, ArrayList(urls), quality, folder)
-        b.status.text = getString(R.string.preparing)
+        DownloadService.start(this, ArrayList(novos), quality, folder)
+        enqueued.addAll(novos)
+        pendingUrls = emptyList()   // pronto para colar o próximo
         b.progress.visibility = View.VISIBLE
+        toast(resources.getQuantityString(R.plurals.added_to_queue, novos.size, novos.size))
     }
 
     private fun currentFolder() =
