@@ -10,16 +10,33 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnShare"
-        style="@style/Widget.Material3.Button.Icon"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_margin="12dp"
-        android:text="@string/share"
-        app:backgroundTint="#CC000000"
-        android:textColor="#FFFFFF"
-        app:icon="@android:drawable/ic_menu_share"
-        app:iconTint="#FFFFFF" />
+        android:layout_margin="10dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSpeed"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:minWidth="0dp"
+            android:text="1x"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#CC000000" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShare"
+            style="@style/Widget.Material3.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/share"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#CC000000"
+            app:icon="@android:drawable/ic_menu_share"
+            app:iconTint="#FFFFFF" />
+    </LinearLayout>
 </FrameLayout>

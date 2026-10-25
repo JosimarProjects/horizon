@@ -33,5 +33,11 @@
     <string name="delete_n">Excluir %1$d vídeos?</string>
     <string name="moved_n">%1$d movido(s)</string>
     <string name="nothing_selected">Nada selecionado</string>
+    <string name="delete_folder">Excluir pasta</string>
+    <string name="folder_delete_q">Excluir a pasta \"%1$s\"?</string>
+    <string name="folder_delete_move">Mover %1$d vídeo(s) p/ Principal e excluir a pasta</string>
+    <string name="folder_delete_all">Excluir a pasta e os %1$d vídeo(s)</string>
+    <string name="folder_deleted">Pasta excluída</string>
+    <string name="speed">Velocidade</string>
     <string name="howto_text">1. Abra o app (YouTube, Instagram, Facebook, TikTok, X…)\n2. Toque em Compartilhar e escolha o Horizon — ou copie o link e volte aqui\n3. Toque no botão de Download\n\nVários de uma vez: copie ou compartilhe um texto com vários links (um por linha) e todos entram na fila.\n\nPlaylist: cole o link da playlist e todos os vídeos são salvos juntos numa pasta.\n\nOs vídeos ficam na aba VÍDEOS, com botão de Compartilhar (WhatsApp etc.) e player interno.</string>
 </resources>

@@ -62,19 +62,74 @@ class LibraryActivity : AppCompatActivity() {
     private fun buildFolderChips() {
         b.folderBar.removeAllViews()
         val entries = buildList {
-            add(getString(R.string.all) to null)                 // Todos
-            add(Downloads.ROOT_LABEL to "")                      // Principal
-            Downloads.folders(this@LibraryActivity).forEach { add(it to it) }
+            add(Triple(getString(R.string.all), null as String?, Palette.ACCENT))  // Todos
+            add(Triple(Downloads.ROOT_LABEL, "" as String?, Palette.ACCENT))       // Principal
+            Downloads.folders(this@LibraryActivity).forEach {
+                add(Triple(it, it as String?, Palette.colorFor(it)))
+            }
         }
-        entries.forEach { (label, value) ->
+        val density = resources.displayMetrics.density
+        entries.forEach { (label, value, color) ->
             val chip = Chip(this).apply {
                 text = label
                 isCheckable = true
                 isChecked = filterFolder == value
-                setOnClickListener { filterFolder = value; refresh() }
+                chipStrokeWidth = 2f * density
+                chipStrokeColor = android.content.res.ColorStateList.valueOf(color)
+                chipBackgroundColor = android.content.res.ColorStateList.valueOf(
+                    if (isChecked) color else android.graphics.Color.TRANSPARENT
+                )
+                setTextColor(if (isChecked) android.graphics.Color.BLACK else color)
+                setOnClickListener {
+                    filterFolder = value
+                    refresh()
+                    buildFolderChips()
+                }
+                if (!value.isNullOrBlank()) {
+                    setOnLongClickListener { folderMenu(value); true }
+                }
             }
             b.folderBar.addView(chip)
         }
+    }
+
+    /** Segurar um chip de pasta abre as opções de excluir a pasta. */
+    private fun folderMenu(folder: String) {
+        val count = Downloads.listVideos(this, folder).size
+        if (count == 0) {
+            AlertDialog.Builder(this)
+                .setMessage(getString(R.string.folder_delete_q, folder))
+                .setPositiveButton(R.string.delete) { _, _ -> doDeleteFolder(folder, false) }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(folder)
+            .setItems(
+                arrayOf(
+                    getString(R.string.folder_delete_move, count),
+                    getString(R.string.folder_delete_all, count)
+                )
+            ) { _, which ->
+                when (which) {
+                    0 -> doDeleteFolder(folder, true)
+                    1 -> AlertDialog.Builder(this)
+                        .setMessage(getString(R.string.folder_delete_all, count) + "?")
+                        .setPositiveButton(R.string.delete) { _, _ -> doDeleteFolder(folder, false) }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                }
+            }
+            .show()
+    }
+
+    private fun doDeleteFolder(folder: String, moveToRoot: Boolean) {
+        Downloads.deleteFolder(this, folder, moveToRoot)
+        if (filterFolder == folder) filterFolder = null
+        toast(getString(R.string.folder_deleted))
+        buildFolderChips()
+        refresh()
     }
 
     private fun sortMenu() {

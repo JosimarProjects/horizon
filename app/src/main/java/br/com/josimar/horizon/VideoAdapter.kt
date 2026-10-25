@@ -40,9 +40,19 @@ class VideoAdapter(
         val isSel = file in selected
         holder.b.check.visibility = if (selectionMode && isSel) View.VISIBLE else View.GONE
         holder.b.actions.visibility = if (selectionMode) View.GONE else View.VISIBLE
-        val strokePx = if (selectionMode && isSel)
-            (3 * ctx.resources.displayMetrics.density).toInt() else 0
-        holder.b.card.strokeWidth = strokePx
+
+        val density = ctx.resources.displayMetrics.density
+        val folder = if (file.parentFile?.name == "Horizon") "" else file.parentFile?.name
+        val folderColor = Palette.colorFor(folder)
+        if (selectionMode && isSel) {
+            holder.b.card.strokeColor = Palette.ACCENT
+            holder.b.card.strokeWidth = (3 * density).toInt()
+        } else {
+            // borda fina com a cor da pasta
+            holder.b.card.strokeColor = folderColor
+            holder.b.card.strokeWidth = (1.5f * density).toInt()
+        }
+        holder.b.name.setTextColor(folderColor)
 
         holder.b.card.setOnClickListener { onClick(file) }
         holder.b.card.setOnLongClickListener { onLongClick(file); true }

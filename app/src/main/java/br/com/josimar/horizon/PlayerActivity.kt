@@ -15,6 +15,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var b: ActivityPlayerBinding
     private var player: ExoPlayer? = null
     private var path: String? = null
+    private var speed = 1f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +23,22 @@ class PlayerActivity : AppCompatActivity() {
         setContentView(b.root)
         path = intent.getStringExtra(EXTRA_PATH)
         b.btnShare.setOnClickListener { share() }
+        b.btnSpeed.setOnClickListener { speedMenu() }
     }
+
+    private fun speedMenu() {
+        val labels = SPEEDS.map { if (it == 1f) "1x (normal)" else "${trim(it)}x" }.toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.speed)
+            .setItems(labels) { _, which ->
+                speed = SPEEDS[which]
+                player?.setPlaybackSpeed(speed)
+                b.btnSpeed.text = "${trim(speed)}x"
+            }
+            .show()
+    }
+
+    private fun trim(v: Float) = if (v % 1f == 0f) v.toInt().toString() else v.toString()
 
     override fun onStart() {
         super.onStart()
@@ -31,6 +47,7 @@ class PlayerActivity : AppCompatActivity() {
         b.player.player = player
         player.setMediaItem(MediaItem.fromUri(Uri.fromFile(File(p))))
         player.prepare()
+        player.setPlaybackSpeed(speed)
         player.playWhenReady = true
         this.player = player
     }
@@ -54,5 +71,6 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_PATH = "path"
+        private val SPEEDS = floatArrayOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
     }
 }

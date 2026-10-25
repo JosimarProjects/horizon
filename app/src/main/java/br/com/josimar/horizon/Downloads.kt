@@ -63,6 +63,21 @@ object Downloads {
     }
 
     /**
+     * Exclui uma pasta. Se moveContentsToRoot, move os vídeos para a raiz
+     * (Principal) antes; senão apaga tudo que estiver dentro.
+     */
+    fun deleteFolder(ctx: Context, name: String, moveContentsToRoot: Boolean): Boolean {
+        val n = sanitize(name)
+        if (n.isBlank()) return false
+        val dir = File(outputDir(ctx), n)
+        if (!dir.isDirectory) return false
+        if (moveContentsToRoot) {
+            dir.listFiles()?.forEach { if (it.isFile) moveToFolder(ctx, it, "") }
+        }
+        return dir.deleteRecursively()
+    }
+
+    /**
      * Lista vídeos. folder == null → todos (recursivo); "" → só a raiz
      * (Principal, sem subpastas); nome → aquela pasta.
      */
