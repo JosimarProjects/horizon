@@ -27,6 +27,7 @@
     <string name="move">Mover</string>
     <string name="rename">Renomear</string>
     <string name="rename_fail">Não foi possível renomear</string>
+    <string name="rename_root_blocked">A pasta Principal não pode ser renomeada</string>
     <string name="all">Todos</string>
     <string name="sort_by">Ordenar por</string>
     <string name="n_selected">%1$d selecionados</string>

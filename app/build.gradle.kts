@@ -73,6 +73,11 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.4.1")
     implementation("androidx.media3:media3-session:1.4.1")
 
+    // Enviar para TV (Google Cast) + mini servidor local p/ servir o arquivo
+    implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
+    implementation("androidx.mediarouter:mediarouter:1.7.0")
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
+
     // thumbnails (inclui decoder de frame de vídeo)
     implementation("io.coil-kt:coil:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")

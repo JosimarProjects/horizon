@@ -99,6 +99,51 @@ object Downloads {
         }
     }
 
+    /** Renomeia uma pasta e migra as prefs por caminho (categorias, histórico, capas). */
+    fun renameFolder(ctx: Context, oldName: String, newName: String): Boolean {
+        val o = sanitize(oldName)
+        val n = sanitize(newName)
+        if (o.isBlank() || n.isBlank() || o == n) return false
+        val od = File(outputDir(ctx), o)
+        val nd = File(outputDir(ctx), n)
+        if (!od.isDirectory || nd.exists()) return false
+        if (!od.renameTo(nd)) return false
+
+        val oldPrefix = od.absolutePath + "/"
+        val newPrefix = nd.absolutePath + "/"
+        // prefs cujas CHAVES são caminhos (valor Long ou String)
+        listOf("categories", "history", "resume").forEach { name ->
+            val p = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
+            val e = p.edit()
+            for ((k, v) in p.all) {
+                if (k.startsWith(oldPrefix)) {
+                    val nk = newPrefix + k.removePrefix(oldPrefix)
+                    e.remove(k)
+                    when (v) {
+                        is String -> e.putString(nk, v)
+                        is Long -> e.putLong(nk, v)
+                        is Int -> e.putInt(nk, v)
+                    }
+                }
+            }
+            e.apply()
+        }
+        // capas: valor é caminho; chave "folder:old" -> "folder:new"
+        val covers = ctx.getSharedPreferences("covers", Context.MODE_PRIVATE)
+        val ce = covers.edit()
+        for ((k, v) in HashMap(covers.all)) {
+            val sv = v as? String ?: continue
+            val nv = if (sv.startsWith(oldPrefix)) newPrefix + sv.removePrefix(oldPrefix) else sv
+            if (k == "folder:$o") { ce.remove(k); ce.putString("folder:$n", nv) }
+            else if (nv != sv) ce.putString(k, nv)
+        }
+        ce.apply()
+        // pasta de destino atual
+        val settings = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        if (settings.getString("folder", "") == o) settings.edit().putString("folder", n).apply()
+        return true
+    }
+
     /** Renomeia o arquivo mantendo a extensão. Retorna o novo arquivo ou null. */
     fun renameFile(file: File, newName: String): File? {
         val base = sanitize(newName).ifBlank { return null }

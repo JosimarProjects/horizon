@@ -41,6 +41,7 @@ class HomeActivity : AppCompatActivity() {
         b.btnVideos.setOnClickListener { startActivity(Intent(this, LibraryActivity::class.java)) }
         b.btnDownload.setOnClickListener { startDownload() }
         b.btnFolder.setOnClickListener { pickFolder() }
+        b.btnFolder.setOnLongClickListener { renameCurrentFolder(); true }
         updateFolderButton()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -135,6 +136,30 @@ class HomeActivity : AppCompatActivity() {
     private fun setFolder(name: String) {
         getSharedPreferences("settings", MODE_PRIVATE).edit().putString("folder", name).apply()
         updateFolderButton()
+    }
+
+    private fun renameCurrentFolder() {
+        val cur = currentFolder()
+        if (cur.isBlank()) {
+            toast(getString(R.string.rename_root_blocked))
+            return
+        }
+        val input = EditText(this).apply { setText(cur) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.rename)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val novo = input.text.toString().trim()
+                when {
+                    novo.isBlank() -> toast(getString(R.string.rename_fail))
+                    // pasta ainda não existe no disco (destino virtual): só troca o nome
+                    !Downloads.folders(this).contains(cur) -> setFolder(novo)
+                    Downloads.renameFolder(this, cur, novo) -> setFolder(novo)
+                    else -> toast(getString(R.string.rename_fail))
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     /** Escolher a pasta de destino dos downloads (ou criar uma nova). */
