@@ -21,7 +21,7 @@ class LibraryActivity : AppCompatActivity() {
         b = ActivityLibraryBinding.inflate(layoutInflater)
         setContentView(b.root)
 
-        adapter = VideoAdapter(emptyList(), onClick = ::play, onLongClick = ::itemMenu)
+        adapter = VideoAdapter(emptyList(), onClick = ::play, onShare = ::share, onDelete = ::confirmDelete)
         b.list.layoutManager = GridLayoutManager(this, 2)
         b.list.adapter = adapter
     }
@@ -38,18 +38,18 @@ class LibraryActivity : AppCompatActivity() {
     }
 
     private fun play(file: File) {
-        startActivity(Intent(this, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_PATH, file.absolutePath))
+        startActivity(
+            Intent(this, PlayerActivity::class.java)
+                .putExtra(PlayerActivity.EXTRA_PATH, file.absolutePath)
+        )
     }
 
-    private fun itemMenu(file: File) {
+    private fun confirmDelete(file: File) {
         AlertDialog.Builder(this)
             .setTitle(file.name)
-            .setItems(arrayOf("Compartilhar", "Excluir")) { _, which ->
-                when (which) {
-                    0 -> share(file)
-                    1 -> { file.delete(); refresh() }
-                }
-            }
+            .setMessage("Excluir este vídeo?")
+            .setPositiveButton(getString(R.string.delete)) { _, _ -> file.delete(); refresh() }
+            .setNegativeButton("Cancelar", null)
             .show()
     }
 
@@ -60,6 +60,6 @@ class LibraryActivity : AppCompatActivity() {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(Intent.createChooser(i, "Compartilhar"))
+        startActivity(Intent.createChooser(i, getString(R.string.share)))
     }
 }

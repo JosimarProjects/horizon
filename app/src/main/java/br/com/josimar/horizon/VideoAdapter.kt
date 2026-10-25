@@ -11,7 +11,8 @@ import java.io.File
 class VideoAdapter(
     private var items: List<File>,
     private val onClick: (File) -> Unit,
-    private val onLongClick: (File) -> Unit
+    private val onShare: (File) -> Unit,
+    private val onDelete: (File) -> Unit
 ) : RecyclerView.Adapter<VideoAdapter.VH>() {
 
     inner class VH(val b: ItemVideoBinding) : RecyclerView.ViewHolder(b.root)
@@ -28,8 +29,10 @@ class VideoAdapter(
             decoderFactory { result, options, _ -> VideoFrameDecoder(result.source, options) }
             crossfade(true)
         }
-        holder.b.root.setOnClickListener { onClick(file) }
-        holder.b.root.setOnLongClickListener { onLongClick(file); true }
+        holder.b.thumb.setOnClickListener { onClick(file) }
+        holder.b.name.setOnClickListener { onClick(file) }
+        holder.b.btnShare.setOnClickListener { onShare(file) }
+        holder.b.btnDelete.setOnClickListener { onDelete(file) }
     }
 
     override fun getItemCount() = items.size

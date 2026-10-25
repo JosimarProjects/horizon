@@ -13,5 +13,10 @@
     <string name="howto">Como usar</string>
     <string name="quality">Qualidade</string>
     <string name="empty_library">Nenhum vídeo baixado ainda</string>
-    <string name="howto_text">1. Abra o app (YouTube, Instagram, Facebook, TikTok, X…)\n2. Toque em Compartilhar e escolha o Horizon — ou copie o link e volte aqui\n3. Toque no botão de Download\n\nOs vídeos ficam na aba VÍDEOS e podem ser abertos no player interno.</string>
+    <string name="n_links">%1$d links na fila — toque em Download</string>
+    <string name="batch_item_done">Baixado %1$d de %2$d…</string>
+    <string name="batch_all_done">Tudo concluído (%1$d)</string>
+    <string name="share">Compartilhar</string>
+    <string name="delete">Excluir</string>
+    <string name="howto_text">1. Abra o app (YouTube, Instagram, Facebook, TikTok, X…)\n2. Toque em Compartilhar e escolha o Horizon — ou copie o link e volte aqui\n3. Toque no botão de Download\n\nVários de uma vez: copie ou compartilhe um texto com vários links (um por linha) e todos entram na fila.\n\nPlaylist: cole o link da playlist e todos os vídeos são salvos juntos numa pasta.\n\nOs vídeos ficam na aba VÍDEOS, com botão de Compartilhar (WhatsApp etc.) e player interno.</string>
 </resources>

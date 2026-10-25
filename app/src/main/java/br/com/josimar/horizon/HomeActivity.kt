@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityHomeBinding
-    private var pendingUrl: String? = null
+    private var pendingUrls: List<String> = emptyList()
     private var justHandledIntent = false
 
     private val notifPermission =
@@ -66,15 +66,15 @@ class HomeActivity : AppCompatActivity() {
         }
         // Caso contrário, sempre relê a área de transferência — assim um link
         // recém-copiado é reconhecido mesmo com o app já aberto.
-        readClipboard()?.let { setPending(it) }
+        val urls = readClipboard()
+        if (urls.isNotEmpty()) setPending(urls)
     }
 
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            val text = intent.getStringExtra(Intent.EXTRA_TEXT)
-            val url = extractUrl(text)
-            if (url != null) {
-                setPending(url)
+            val urls = extractUrls(intent.getStringExtra(Intent.EXTRA_TEXT))
+            if (urls.isNotEmpty()) {
+                setPending(urls)
                 justHandledIntent = true
             } else {
                 toast(getString(R.string.url_invalid))
@@ -82,26 +82,29 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun readClipboard(): String? {
+    private fun readClipboard(): List<String> {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()
-        return extractUrl(text)
+        return extractUrls(text)
     }
 
-    private fun setPending(url: String) {
-        pendingUrl = url
-        b.status.text = url
+    private fun setPending(urls: List<String>) {
+        pendingUrls = urls
+        b.status.text = when {
+            urls.size > 1 -> getString(R.string.n_links, urls.size)
+            else -> urls.first()
+        }
     }
 
     private fun startDownload() {
-        val url = pendingUrl ?: readClipboard()
-        if (url == null) {
+        val urls = pendingUrls.ifEmpty { readClipboard() }
+        if (urls.isEmpty()) {
             toast(getString(R.string.url_missing))
             return
         }
         val quality = getSharedPreferences("settings", MODE_PRIVATE)
             .getString("quality", "best") ?: "best"
-        DownloadService.start(this, url, quality)
+        DownloadService.start(this, ArrayList(urls), quality)
         b.status.text = getString(R.string.preparing)
         b.progress.visibility = View.VISIBLE
     }
@@ -111,22 +114,29 @@ class HomeActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 Downloads.progress.collect { p ->
                     p ?: return@collect
+                    val prefix = if (p.total > 1) "(${p.index}/${p.total}) " else ""
                     when {
                         p.error != null -> {
                             b.status.text = "Falha: ${p.error}"
                             b.progress.visibility = View.INVISIBLE
                         }
                         p.done -> {
-                            b.status.text = getString(R.string.complete)
                             b.progress.setProgressCompat(100, true)
-                            b.progress.visibility = View.INVISIBLE
+                            if (p.total > 1 && p.index < p.total) {
+                                b.status.text = getString(R.string.batch_item_done, p.index, p.total)
+                            } else {
+                                b.status.text = if (p.total > 1)
+                                    getString(R.string.batch_all_done, p.total)
+                                else getString(R.string.complete)
+                                b.progress.visibility = View.INVISIBLE
+                            }
                         }
                         else -> {
                             b.progress.visibility = View.VISIBLE
                             b.progress.setProgressCompat(p.percent.toInt(), true)
                             b.status.text = if (p.percent > 0f)
-                                "${getString(R.string.preparing)} ${p.percent.toInt()}%"
-                            else getString(R.string.preparing)
+                                "$prefix${getString(R.string.preparing)} ${p.percent.toInt()}%"
+                            else "$prefix${getString(R.string.preparing)}"
                         }
                     }
                 }
@@ -140,9 +150,13 @@ class HomeActivity : AppCompatActivity() {
         private val URL_REGEX =
             Regex("(https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])")
 
-        fun extractUrl(text: String?): String? {
-            if (text.isNullOrBlank()) return null
-            return URL_REGEX.find(text)?.value
+        /** Primeiro link do texto (compatibilidade). */
+        fun extractUrl(text: String?): String? = extractUrls(text).firstOrNull()
+
+        /** Todos os links do texto, sem repetir. */
+        fun extractUrls(text: String?): List<String> {
+            if (text.isNullOrBlank()) return emptyList()
+            return URL_REGEX.findAll(text).map { it.value }.distinct().toList()
         }
     }
 }
