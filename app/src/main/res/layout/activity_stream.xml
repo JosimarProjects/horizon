@@ -168,6 +168,18 @@
             app:iconTint="@color/accent" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnListSel"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="@string/list"
+            android:textColor="@color/accent"
+            android:textSize="11sp"
+            app:icon="@android:drawable/ic_media_play"
+            app:iconTint="@color/accent" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMoveSel"
             style="@style/Widget.Material3.Button.TextButton.Icon"
             android:layout_width="wrap_content"

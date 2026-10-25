@@ -28,6 +28,11 @@
     <string name="rename">Renomear</string>
     <string name="rename_fail">Não foi possível renomear</string>
     <string name="rename_root_blocked">A pasta Principal não pode ser renomeada</string>
+    <string name="list">Lista</string>
+    <string name="new_list">Nova lista</string>
+    <string name="list_name">Nome da lista</string>
+    <string name="add_to_list">Adicionar à lista</string>
+    <string name="added_to_list">Adicionado à lista</string>
     <string name="all">Todos</string>
     <string name="sort_by">Ordenar por</string>
     <string name="n_selected">%1$d selecionados</string>

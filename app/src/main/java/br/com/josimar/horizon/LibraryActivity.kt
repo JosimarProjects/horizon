@@ -190,6 +190,7 @@ class LibraryActivity : AppCompatActivity() {
         val actions = arrayOf(
             getString(R.string.rename),
             getString(R.string.category),
+            getString(R.string.add_to_list),
             getString(R.string.move),
             getString(R.string.share),
             getString(R.string.delete)
@@ -200,9 +201,36 @@ class LibraryActivity : AppCompatActivity() {
                 when (which) {
                     0 -> renameDialog(file)
                     1 -> categoryDialog(file)
-                    2 -> moveDialog(listOf(file))
-                    3 -> share(file)
-                    4 -> confirmDelete(listOf(file))
+                    2 -> listDialog(file)
+                    3 -> moveDialog(listOf(file))
+                    4 -> share(file)
+                    5 -> confirmDelete(listOf(file))
+                }
+            }
+            .show()
+    }
+
+    private fun listDialog(file: File) {
+        val lists = Playlists.allNames(this)
+        val options = buildList { addAll(lists); add("➕ " + getString(R.string.new_list)) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.add_to_list)
+            .setItems(options.toTypedArray()) { _, which ->
+                if (which == options.lastIndex) {
+                    val input = EditText(this).apply { hint = getString(R.string.list_name) }
+                    AlertDialog.Builder(this).setTitle(R.string.new_list).setView(input)
+                        .setPositiveButton(R.string.create) { _, _ ->
+                            val n = input.text.toString().trim()
+                            if (n.isNotBlank()) {
+                                Playlists.create(this, n)
+                                Playlists.add(this, n, listOf(file.absolutePath))
+                                toast(getString(R.string.added_to_list))
+                            }
+                        }
+                        .setNegativeButton(android.R.string.cancel, null).show()
+                } else {
+                    Playlists.add(this, options[which], listOf(file.absolutePath))
+                    toast(getString(R.string.added_to_list))
                 }
             }
             .show()

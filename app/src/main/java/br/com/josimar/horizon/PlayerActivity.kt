@@ -25,6 +25,8 @@ class PlayerActivity : AppCompatActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
     private var path: String? = null
+    private var playlist: ArrayList<String>? = null
+    private var startIndex = 0
     private var speed = 1f
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,10 +34,15 @@ class PlayerActivity : AppCompatActivity() {
         b = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(b.root)
         path = intent.getStringExtra(EXTRA_PATH)
+        playlist = intent.getStringArrayListExtra(EXTRA_PLAYLIST)
+        startIndex = intent.getIntExtra(EXTRA_START_INDEX, 0)
         b.btnBack.setOnClickListener { finish() }
         b.btnShare.setOnClickListener { share() }
         b.btnSpeed.setOnClickListener { speedMenu() }
     }
+
+    /** Caminho do item em reprodução (vale para playlist). */
+    private fun currentPath(): String? = controller?.currentMediaItem?.mediaId ?: path
 
     override fun onStart() {
         super.onStart()
@@ -46,17 +53,33 @@ class PlayerActivity : AppCompatActivity() {
             val c = try { future.get() } catch (_: Exception) { return@addListener }
             controller = c
             b.player.player = c
+            c.addListener(object : androidx.media3.common.Player.Listener {
+                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    mediaItem?.mediaId?.let { Resume.markPlayed(this@PlayerActivity, it) }
+                }
+            })
             try { attach(c) } catch (_: Exception) {}
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun attach(c: MediaController) {
-        val p = path ?: return
         c.setPlaybackSpeed(speed)
-        if (c.currentMediaItem?.mediaId == p && c.mediaItemCount > 0) {
-            // já é o vídeo em reprodução (voltou pra ele) — só reanexa
+        val pl = playlist
+        if (pl != null && pl.isNotEmpty()) {
+            // já está tocando esta lista? só reanexa
+            if (c.mediaItemCount == pl.size && c.currentMediaItem?.mediaId in pl) return
+            val items = pl.map {
+                MediaItem.Builder().setUri(Uri.fromFile(File(it))).setMediaId(it).build()
+            }
+            val idx = startIndex.coerceIn(0, pl.size - 1)
+            Resume.markPlayed(this, pl[idx])
+            c.setMediaItems(items, idx, Resume.position(this, pl[idx]))
+            c.prepare()
+            c.playWhenReady = true
             return
         }
+        val p = path ?: return
+        if (c.currentMediaItem?.mediaId == p && c.mediaItemCount > 0) return
         Resume.markPlayed(this, p)
         val item = MediaItem.Builder()
             .setUri(Uri.fromFile(File(p)))
@@ -108,7 +131,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun saveProgress() {
-        val p = path ?: return
+        val p = currentPath() ?: return
         controller?.let {
             if (it.duration > 0) Resume.save(this, p, it.currentPosition, it.duration)
         }
@@ -129,7 +152,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun trim(v: Float) = if (v % 1f == 0f) v.toInt().toString() else v.toString()
 
     private fun share() {
-        val p = path ?: return
+        val p = currentPath() ?: return
         val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", File(p))
         val i = Intent(Intent.ACTION_SEND).apply {
             type = "video/*"
@@ -141,6 +164,16 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_PATH = "path"
+        const val EXTRA_PLAYLIST = "playlist"
+        const val EXTRA_START_INDEX = "start_index"
         private val SPEEDS = floatArrayOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
+
+        fun playlist(ctx: android.content.Context, paths: List<String>, startIndex: Int = 0) {
+            ctx.startActivity(
+                Intent(ctx, PlayerActivity::class.java)
+                    .putStringArrayListExtra(EXTRA_PLAYLIST, ArrayList(paths))
+                    .putExtra(EXTRA_START_INDEX, startIndex)
+            )
+        }
     }
 }

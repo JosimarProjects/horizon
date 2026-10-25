@@ -25,6 +25,7 @@ class StreamActivity : AppCompatActivity() {
 
     private var filterFolder: String? = null
     private var filterCategory: String? = null
+    private var filterPlaylist: String? = null
 
     private var selectionMode = false
     private val selected = linkedSetOf<File>()
@@ -37,6 +38,7 @@ class StreamActivity : AppCompatActivity() {
         b.btnBack.setOnClickListener { finish() }
         b.btnManage.setOnClickListener { startActivity(Intent(this, LibraryActivity::class.java)) }
         b.btnCatSel.setOnClickListener { categoryPicker(selected.toList()) }
+        b.btnListSel.setOnClickListener { listPicker(selected.toList()) }
         b.btnMoveSel.setOnClickListener { folderPicker(selected.toList()) }
         b.btnShareSel.setOnClickListener { shareMany(selected.toList()) }
         b.btnDeleteSel.setOnClickListener { confirmDelete(selected.toList()) }
@@ -56,7 +58,13 @@ class StreamActivity : AppCompatActivity() {
 
         val set: List<File>
         val heroFile: File?
+        var heroIsPlaylist = false
         when {
+            filterPlaylist != null -> {
+                set = Playlists.items(this, filterPlaylist!!)
+                heroFile = Catalog.cover(this, "list:$filterPlaylist") ?: set.firstOrNull()
+                heroIsPlaylist = true
+            }
             filterCategory != null -> {
                 set = Catalog.inCategory(this, filterCategory!!)
                 heroFile = Catalog.cover(this, "cat:$filterCategory") ?: set.firstOrNull()
@@ -80,6 +88,7 @@ class StreamActivity : AppCompatActivity() {
         b.heroBox.visibility = View.VISIBLE
 
         b.heroTitle.text = when {
+            filterPlaylist != null -> "▶ $filterPlaylist"
             filterCategory != null -> filterCategory
             filterFolder != null -> filterFolder
             else -> heroFile.nameWithoutExtension
@@ -88,24 +97,31 @@ class StreamActivity : AppCompatActivity() {
             decoderFactory { result, options, _ -> VideoFrameDecoder(result.source, options) }
             crossfade(true)
         }
-        b.btnHeroPlay.setOnClickListener { play(heroFile) }
+        b.btnHeroPlay.setOnClickListener {
+            if (heroIsPlaylist) PlayerActivity.playlist(this, set.map { it.absolutePath }, 0)
+            else play(heroFile)
+        }
 
-        if (filterCategory != null) {
-            addRow(filterCategory!!, Palette.colorFor(filterCategory), set)
-        } else if (filterFolder != null) {
-            addRow(filterFolder!!, Palette.colorFor(filterFolder), set)
-        } else {
-            val watched = Resume.history(this).map { File(it) }.filter { it.exists() }
-            addRow(getString(R.string.row_continue), Palette.ACCENT,
-                watched.filter { Resume.fraction(this, it.absolutePath) in 0.02f..0.95f })
-            addRow(getString(R.string.row_history), Palette.ACCENT, watched)
-            addRow(getString(R.string.row_recent), Palette.ACCENT, set.take(20))
-            Catalog.categories(this).forEach { cat ->
-                addRow(cat, Palette.colorFor(cat), Catalog.inCategory(this, cat))
-            }
-            Downloads.folders(this).forEach { folder ->
-                addRow(folder, Palette.colorFor(folder),
-                    Downloads.listVideos(this, folder, Downloads.Sort.RECENT))
+        when {
+            filterPlaylist != null -> addRow("▶ $filterPlaylist", Palette.colorFor(filterPlaylist), set, asPlaylist = true)
+            filterCategory != null -> addRow(filterCategory!!, Palette.colorFor(filterCategory), set)
+            filterFolder != null -> addRow(filterFolder!!, Palette.colorFor(filterFolder), set)
+            else -> {
+                val watched = Resume.history(this).map { File(it) }.filter { it.exists() }
+                addRow(getString(R.string.row_continue), Palette.ACCENT,
+                    watched.filter { Resume.fraction(this, it.absolutePath) in 0.02f..0.95f })
+                addRow(getString(R.string.row_history), Palette.ACCENT, watched)
+                addRow(getString(R.string.row_recent), Palette.ACCENT, set.take(20))
+                Playlists.names(this).forEach { pl ->
+                    addRow("▶ $pl", Palette.colorFor(pl), Playlists.items(this, pl), asPlaylist = true)
+                }
+                Catalog.categories(this).forEach { cat ->
+                    addRow(cat, Palette.colorFor(cat), Catalog.inCategory(this, cat))
+                }
+                Downloads.folders(this).forEach { folder ->
+                    addRow(folder, Palette.colorFor(folder),
+                        Downloads.listVideos(this, folder, Downloads.Sort.RECENT))
+                }
             }
         }
         updateBottomBar()
@@ -119,15 +135,21 @@ class StreamActivity : AppCompatActivity() {
 
         val chips = buildList {
             add(C(getString(R.string.all), Palette.ACCENT,
-                { filterFolder = null; filterCategory = null }, filterFolder == null && filterCategory == null, null))
+                { filterFolder = null; filterCategory = null; filterPlaylist = null },
+                filterFolder == null && filterCategory == null && filterPlaylist == null, null))
+            Playlists.names(this@StreamActivity).forEach { pl ->
+                add(C("▶ $pl", Palette.colorFor(pl),
+                    { filterPlaylist = pl; filterCategory = null; filterFolder = null }, filterPlaylist == pl,
+                    { playlistChipMenu(pl) }))
+            }
             Catalog.categories(this@StreamActivity).forEach { cat ->
                 add(C(cat, Palette.colorFor(cat),
-                    { filterCategory = cat; filterFolder = null }, filterCategory == cat,
+                    { filterCategory = cat; filterFolder = null; filterPlaylist = null }, filterCategory == cat,
                     { categoryChipMenu(cat) }))
             }
             Downloads.folders(this@StreamActivity).forEach { f ->
                 add(C(f, Palette.colorFor(f),
-                    { filterFolder = f; filterCategory = null }, filterFolder == f,
+                    { filterFolder = f; filterCategory = null; filterPlaylist = null }, filterFolder == f,
                     { folderChipMenu(f) }))
             }
         }
@@ -149,7 +171,7 @@ class StreamActivity : AppCompatActivity() {
         }
     }
 
-    private fun addRow(label: String, color: Int, files: List<File>) {
+    private fun addRow(label: String, color: Int, files: List<File>, asPlaylist: Boolean = false) {
         if (files.isEmpty()) return
         val rb = RowSectionBinding.inflate(layoutInflater, b.rows, false)
         rb.rowLabel.text = label
@@ -157,7 +179,13 @@ class StreamActivity : AppCompatActivity() {
         rb.rowList.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         val adapter = StreamRowAdapter(
             files,
-            onClick = { f -> if (selectionMode) toggle(f) else play(f) },
+            onClick = { f ->
+                when {
+                    selectionMode -> toggle(f)
+                    asPlaylist -> PlayerActivity.playlist(this, files.map { it.absolutePath }, files.indexOf(f))
+                    else -> play(f)
+                }
+            },
             onLongClick = { f -> enterSelection(f) },
             selecting = { selectionMode },
             isSelected = { it in selected }
@@ -278,6 +306,25 @@ class StreamActivity : AppCompatActivity() {
         exitSelection(); build()
     }
 
+    private fun listPicker(files: List<File>) {
+        if (files.isEmpty()) return
+        val lists = Playlists.allNames(this)
+        val options = buildList { addAll(lists); add("➕ " + getString(R.string.new_list)) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.add_to_list)
+            .setItems(options.toTypedArray()) { _, which ->
+                if (which == options.lastIndex) promptNewList { addToList(files, it) }
+                else addToList(files, options[which])
+            }
+            .show()
+    }
+
+    private fun addToList(files: List<File>, list: String) {
+        Playlists.add(this, list, files.map { it.absolutePath })
+        toast(getString(R.string.added_to_list))
+        exitSelection(); build()
+    }
+
     // ---------- menus dos chips ----------
 
     private fun categoryChipMenu(cat: String) {
@@ -306,6 +353,37 @@ class StreamActivity : AppCompatActivity() {
                         Downloads.deleteFolder(this, folder, true)
                         if (filterFolder == folder) filterFolder = null
                         toast(getString(R.string.folder_deleted)); build()
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun playlistChipMenu(name: String) {
+        AlertDialog.Builder(this)
+            .setTitle("▶ $name")
+            .setItems(
+                arrayOf(getString(R.string.set_cover), getString(R.string.rename), getString(R.string.delete))
+            ) { _, which ->
+                when (which) {
+                    0 -> coverPicker("list:$name", Playlists.items(this, name))
+                    1 -> {
+                        val input = EditText(this).apply { setText(name) }
+                        AlertDialog.Builder(this).setTitle(R.string.rename).setView(input)
+                            .setPositiveButton(android.R.string.ok) { _, _ ->
+                                val n = input.text.toString().trim()
+                                if (n.isNotBlank()) {
+                                    Playlists.rename(this, name, n)
+                                    if (filterPlaylist == name) filterPlaylist = n
+                                    build()
+                                }
+                            }
+                            .setNegativeButton(android.R.string.cancel, null).show()
+                    }
+                    2 -> {
+                        Playlists.delete(this, name)
+                        if (filterPlaylist == name) filterPlaylist = null
+                        build()
                     }
                 }
             }
@@ -342,6 +420,16 @@ class StreamActivity : AppCompatActivity() {
             .setPositiveButton(R.string.create) { _, _ ->
                 val n = input.text.toString().trim()
                 if (n.isNotBlank()) onCreated(n)
+            }
+            .setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun promptNewList(onCreated: (String) -> Unit) {
+        val input = EditText(this).apply { hint = getString(R.string.list_name) }
+        AlertDialog.Builder(this).setTitle(R.string.new_list).setView(input)
+            .setPositiveButton(R.string.create) { _, _ ->
+                val n = input.text.toString().trim()
+                if (n.isNotBlank()) { Playlists.create(this, n); onCreated(n) }
             }
             .setNegativeButton(android.R.string.cancel, null).show()
     }
