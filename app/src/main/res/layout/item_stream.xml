@@ -53,6 +53,20 @@
             android:src="@android:drawable/checkbox_on_background"
             android:visibility="gone"
             app:tint="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/watched"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="6dp"
+            android:background="@drawable/watched_bg"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:text="✓"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:visibility="gone" />
     </com.google.android.material.card.MaterialCardView>
 
     <TextView

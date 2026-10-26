@@ -155,6 +155,21 @@ object Downloads {
         return if (file.renameTo(target)) target else null
     }
 
+    /** Soma do tamanho de todos os vídeos baixados. */
+    fun usedBytes(ctx: Context): Long =
+        listVideos(ctx, null).sumOf { it.length() }
+
+    /** Espaço livre no armazenamento onde o app salva. */
+    fun freeBytes(ctx: Context): Long = try {
+        android.os.StatFs(outputDir(ctx).path).availableBytes
+    } catch (_: Exception) { 0L }
+
+    fun humanSize(bytes: Long): String {
+        if (bytes <= 0) return "0 MB"
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb >= 1024) String.format("%.1f GB", mb / 1024) else String.format("%.0f MB", mb)
+    }
+
     /** Move um arquivo já baixado para outra pasta (vazio = raiz). */
     fun moveToFolder(ctx: Context, file: File, folder: String?): Boolean {
         val dest = folderDir(ctx, folder)

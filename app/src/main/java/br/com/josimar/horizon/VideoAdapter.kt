@@ -40,6 +40,8 @@ class VideoAdapter(
         val isSel = file in selected
         holder.b.check.visibility = if (selectionMode && isSel) View.VISIBLE else View.GONE
         holder.b.actions.visibility = if (selectionMode) View.GONE else View.VISIBLE
+        holder.b.watched.visibility =
+            if (!selectionMode && Resume.isWatched(ctx, file.absolutePath)) View.VISIBLE else View.GONE
 
         val density = ctx.resources.displayMetrics.density
         val folder = if (file.parentFile?.name == "Horizon") "" else file.parentFile?.name

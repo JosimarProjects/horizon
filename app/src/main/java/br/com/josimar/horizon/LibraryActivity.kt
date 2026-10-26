@@ -187,7 +187,10 @@ class LibraryActivity : AppCompatActivity() {
     }
 
     private fun itemMenu(file: File) {
+        val watched = Resume.isWatched(this, file.absolutePath)
+        val watchLabel = if (watched) getString(R.string.mark_unwatched) else getString(R.string.mark_watched)
         val actions = arrayOf(
+            watchLabel,
             getString(R.string.rename),
             getString(R.string.category),
             getString(R.string.add_to_list),
@@ -199,12 +202,13 @@ class LibraryActivity : AppCompatActivity() {
             .setTitle(file.nameWithoutExtension)
             .setItems(actions) { _, which ->
                 when (which) {
-                    0 -> renameDialog(file)
-                    1 -> categoryDialog(file)
-                    2 -> listDialog(file)
-                    3 -> moveDialog(listOf(file))
-                    4 -> share(file)
-                    5 -> confirmDelete(listOf(file))
+                    0 -> { Resume.setWatched(this, file.absolutePath, !watched); refresh() }
+                    1 -> renameDialog(file)
+                    2 -> categoryDialog(file)
+                    3 -> listDialog(file)
+                    4 -> moveDialog(listOf(file))
+                    5 -> share(file)
+                    6 -> confirmDelete(listOf(file))
                 }
             }
             .show()

@@ -45,4 +45,18 @@ object Resume {
     }
 
     fun hasResume(ctx: Context, path: String): Boolean = position(ctx, path) > 0L
+
+    // ---- assistido (flag manual; auto quando >= 95%) ----
+    private const val WATCHED = "watched"
+
+    fun isWatched(ctx: Context, path: String): Boolean {
+        val p = ctx.getSharedPreferences(WATCHED, Context.MODE_PRIVATE)
+        if (p.contains(path)) return p.getBoolean(path, false)
+        return fraction(ctx, path) >= 0.95f
+    }
+
+    fun setWatched(ctx: Context, path: String, watched: Boolean) {
+        ctx.getSharedPreferences(WATCHED, Context.MODE_PRIVATE)
+            .edit().putBoolean(path, watched).apply()
+    }
 }

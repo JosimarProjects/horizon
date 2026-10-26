@@ -35,6 +35,12 @@
     <string name="added_to_list">Adicionado à lista</string>
     <string name="analyzing">Analisando tamanho…</string>
     <string name="choose_quality">Qualidade / compressão</string>
+    <string name="file_name">Nome do arquivo</string>
+    <string name="download_action">Baixar</string>
+    <string name="folder_label">Pasta: %1$s</string>
+    <string name="mark_watched">Marcar como assistido</string>
+    <string name="mark_unwatched">Desmarcar assistido</string>
+    <string name="storage_info">Vídeos: %1$s · Livre no aparelho: %2$s</string>
     <string name="all">Todos</string>
     <string name="sort_by">Ordenar por</string>
     <string name="n_selected">%1$d selecionados</string>

@@ -41,6 +41,8 @@ class StreamRowAdapter(
         }
         holder.b.check.visibility =
             if (selecting() && isSelected(file)) View.VISIBLE else View.GONE
+        holder.b.watched.visibility =
+            if (!selecting() && Resume.isWatched(ctx, file.absolutePath)) View.VISIBLE else View.GONE
         holder.b.root.setOnClickListener { onClick(file) }
         holder.b.root.setOnLongClickListener { onLongClick(file); true }
     }

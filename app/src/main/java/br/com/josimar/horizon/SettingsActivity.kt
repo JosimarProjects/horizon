@@ -14,6 +14,12 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(b.root)
         b.btnBack.setOnClickListener { finish() }
 
+        b.storage.text = getString(
+            R.string.storage_info,
+            Downloads.humanSize(Downloads.usedBytes(this)),
+            Downloads.humanSize(Downloads.freeBytes(this))
+        )
+
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
         when (prefs.getString("quality", "best")) {
             "1080" -> b.q1080.isChecked = true

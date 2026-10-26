@@ -128,11 +128,12 @@ class HomeActivity : AppCompatActivity() {
                     YoutubeDL.getInstance().getInfo(novos.first())
                 } catch (_: Exception) { null }
             }
-            compressDialog(novos, info)
+            downloadDialog(novos, info)
         }
     }
 
-    private fun compressDialog(urls: List<String>, info: VideoInfo?) {
+    /** Diálogo de download: renomear, escolher pasta e qualidade/compressão. */
+    private fun downloadDialog(urls: List<String>, info: VideoInfo?) {
         val d = info?.duration ?: 0
         fun est(bps: Long): String = if (d > 0) "~" + human(bps * d / 8) else "?"
         val orig = when {
@@ -141,24 +142,48 @@ class HomeActivity : AppCompatActivity() {
             d > 0 -> est(2_800_000)
             else -> "?"
         }
-        val options = arrayOf(
-            "Original ($orig)",
-            "720p (${est(1_600_000)})",
-            "480p (${est(900_000)})",
-            "Comprimir forte — 480p (${est(550_000)})",
-            "Só áudio MP3 (${est(128_000)})"
-        )
-        val modes = arrayOf("best", "720", "480", "compress", "audio")
+
+        val v = layoutInflater.inflate(R.layout.dialog_download, null)
+        val nameEt = v.findViewById<android.widget.EditText>(R.id.name)
+        val folderBtn = v.findViewById<com.google.android.material.button.MaterialButton>(R.id.folderBtn)
+        val qg = v.findViewById<android.widget.RadioGroup>(R.id.quality)
+
+        // nome: só renomeia quando é 1 link
+        val single = urls.size == 1
+        if (single) nameEt.setText(info?.title ?: "")
+        else { nameEt.setText(""); nameEt.hint = "(${urls.size} vídeos)"; nameEt.isEnabled = false }
+
+        var chosenFolder = currentFolder()
+        fun lbl() { folderBtn.text = getString(R.string.folder_label, chosenFolder.ifBlank { getString(R.string.folder_main) }) }
+        lbl()
+        folderBtn.setOnClickListener { chooseFolder(chosenFolder) { chosenFolder = it; lbl() } }
+
+        v.findViewById<android.widget.RadioButton>(R.id.qOriginal).text = "Original ($orig)"
+        v.findViewById<android.widget.RadioButton>(R.id.q720).text = "720p (${est(1_600_000)})"
+        v.findViewById<android.widget.RadioButton>(R.id.q480).text = "480p (${est(900_000)})"
+        v.findViewById<android.widget.RadioButton>(R.id.qCompress).text = "Comprimir forte — 480p (${est(550_000)})"
+        v.findViewById<android.widget.RadioButton>(R.id.qAudio).text = "Só áudio MP3 (${est(128_000)})"
+        qg.check(R.id.qOriginal)
+
         AlertDialog.Builder(this)
-            .setTitle(R.string.choose_quality)
-            .setItems(options) { _, which -> enqueue(urls, modes[which]) }
+            .setTitle(R.string.download)
+            .setView(v)
+            .setPositiveButton(R.string.download_action) { _, _ ->
+                val mode = when (qg.checkedRadioButtonId) {
+                    R.id.q720 -> "720"; R.id.q480 -> "480"
+                    R.id.qCompress -> "compress"; R.id.qAudio -> "audio"
+                    else -> "best"
+                }
+                val name = if (single) nameEt.text.toString().trim() else ""
+                enqueue(urls, mode, chosenFolder, name)
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> b.status.text = getString(R.string.idle) }
             .setOnCancelListener { b.status.text = getString(R.string.idle) }
             .show()
     }
 
-    private fun enqueue(urls: List<String>, mode: String) {
-        val folder = getSharedPreferences("settings", MODE_PRIVATE).getString("folder", "") ?: ""
-        DownloadService.start(this, ArrayList(urls), mode, folder)
+    private fun enqueue(urls: List<String>, mode: String, folder: String, name: String) {
+        DownloadService.start(this, ArrayList(urls), mode, folder, name)
         enqueued.addAll(urls)
         pendingUrls = emptyList()
         b.progress.visibility = View.VISIBLE
@@ -207,8 +232,11 @@ class HomeActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Escolher a pasta de destino dos downloads (ou criar uma nova). */
-    private fun pickFolder() {
+    /** Escolher a pasta de destino padrão (botão da Home). */
+    private fun pickFolder() = chooseFolder(currentFolder()) { setFolder(it) }
+
+    /** Seletor de pasta reutilizável: Principal + pastas + criar nova. */
+    private fun chooseFolder(current: String, onChosen: (String) -> Unit) {
         val folders = Downloads.folders(this)
         val options = buildList {
             add(Downloads.ROOT_LABEL)   // "" (raiz)
@@ -219,27 +247,19 @@ class HomeActivity : AppCompatActivity() {
             .setTitle(R.string.save_to)
             .setItems(options.toTypedArray()) { _, which ->
                 when {
-                    which == 0 -> setFolder("")
-                    which == options.lastIndex -> promptNewFolder()
-                    else -> setFolder(options[which])
+                    which == 0 -> onChosen("")
+                    which == options.lastIndex -> {
+                        val input = EditText(this).apply { hint = getString(R.string.folder_name) }
+                        AlertDialog.Builder(this).setTitle(R.string.new_folder).setView(input)
+                            .setPositiveButton(R.string.create) { _, _ ->
+                                val name = input.text.toString().trim()
+                                if (name.isNotBlank()) { Downloads.createFolder(this, name); onChosen(name) }
+                            }
+                            .setNegativeButton(android.R.string.cancel, null).show()
+                    }
+                    else -> onChosen(options[which])
                 }
             }
-            .show()
-    }
-
-    private fun promptNewFolder() {
-        val input = EditText(this).apply { hint = getString(R.string.folder_name) }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.new_folder)
-            .setView(input)
-            .setPositiveButton(R.string.create) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotBlank()) {
-                    Downloads.createFolder(this, name)
-                    setFolder(name)
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 

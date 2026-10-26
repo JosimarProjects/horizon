@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 class DownloadService : Service() {
 
-    private data class Item(val url: String, val quality: String, val folder: String)
+    private data class Item(val url: String, val quality: String, val folder: String, val name: String)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -33,6 +33,7 @@ class DownloadService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val quality = intent?.getStringExtra(EXTRA_QUALITY) ?: "best"
         val folder = intent?.getStringExtra(EXTRA_FOLDER) ?: ""
+        val name = intent?.getStringExtra(EXTRA_NAME) ?: ""
         val urls = intent?.getStringArrayListExtra(EXTRA_URLS)
             ?: intent?.getStringExtra(EXTRA_URL)?.let { arrayListOf(it) }
             ?: arrayListOf()
@@ -42,7 +43,9 @@ class DownloadService : Service() {
             return START_NOT_STICKY
         }
 
-        clean.forEach { queue.add(Item(it, quality, folder)); totalEnqueued.incrementAndGet() }
+        // nome customizado só faz sentido para 1 vídeo
+        val useName = if (clean.size == 1) name else ""
+        clean.forEach { queue.add(Item(it, quality, folder, useName)); totalEnqueued.incrementAndGet() }
 
         ServiceCompat.startForeground(
             this,
@@ -101,7 +104,12 @@ class DownloadService : Service() {
                     addOption("-o", "${dir.absolutePath}/%(playlist_title).60s/%(playlist_index)03d-%(title).60s.%(ext)s")
                 } else {
                     addOption("--no-playlist")
-                    addOption("-o", "${dir.absolutePath}/%(title).70s.%(ext)s")
+                    val safe = item.name.trim().replace(Regex("[/\\\\:*?\"<>|]"), "_").take(80)
+                    if (safe.isNotBlank()) {
+                        addOption("-o", "${dir.absolutePath}/$safe.%(ext)s")
+                    } else {
+                        addOption("-o", "${dir.absolutePath}/%(title).70s.%(ext)s")
+                    }
                 }
                 when (item.quality) {
                     "audio" -> { addOption("-x"); addOption("--audio-format", "mp3") }
@@ -189,6 +197,7 @@ class DownloadService : Service() {
         const val EXTRA_URLS = "urls"
         const val EXTRA_QUALITY = "quality"
         const val EXTRA_FOLDER = "folder"
+        const val EXTRA_NAME = "name"
         private const val NOTIF_ID = 42
 
         private val queue = ConcurrentLinkedQueue<Item>()
@@ -196,14 +205,15 @@ class DownloadService : Service() {
         private val totalEnqueued = AtomicInteger(0)
         private val completed = AtomicInteger(0)
 
-        fun start(ctx: Context, url: String, quality: String, folder: String = "") =
-            start(ctx, arrayListOf(url), quality, folder)
+        fun start(ctx: Context, url: String, quality: String, folder: String = "", name: String = "") =
+            start(ctx, arrayListOf(url), quality, folder, name)
 
-        fun start(ctx: Context, urls: ArrayList<String>, quality: String, folder: String = "") {
+        fun start(ctx: Context, urls: ArrayList<String>, quality: String, folder: String = "", name: String = "") {
             val i = Intent(ctx, DownloadService::class.java)
                 .putStringArrayListExtra(EXTRA_URLS, urls)
                 .putExtra(EXTRA_QUALITY, quality)
                 .putExtra(EXTRA_FOLDER, folder)
+                .putExtra(EXTRA_NAME, name)
             androidx.core.content.ContextCompat.startForegroundService(ctx, i)
         }
     }
